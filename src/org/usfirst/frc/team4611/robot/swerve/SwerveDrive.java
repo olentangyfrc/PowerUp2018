@@ -25,10 +25,10 @@ public class SwerveDrive extends Subsystem{
 	}
 	
 	public void swerve(double xVal, double yVal, double zVal) {
-		
+		double pigeonAngle = pigeon.getFusedHeading();
 		//Gets the current relative orientation of the pigeon, and adds an offset so that it's the same as a unit circle
-		double currentAngle = Math.toRadians(pigeon.getFusedHeading()%360) + Math.PI/2;
-		
+		double currentAngle = Math.toRadians(Math.abs(pigeonAngle)%360) - Math.PI/2;
+		currentAngle += pigeonAngle < 0 ? Math.PI: 0;
 		double courseFL;
 		double courseFR;
 		double courseBL;
