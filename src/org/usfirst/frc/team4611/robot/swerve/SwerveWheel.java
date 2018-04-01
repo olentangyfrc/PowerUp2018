@@ -22,6 +22,7 @@ public class SwerveWheel {
 		rotateTalon.setSelectedSensorPosition(0, 0, 0);
 		wheelTalon.configMotionAcceleration(magicValuesAccel, 0);
 		wheelTalon.configMotionCruiseVelocity(motionmagicCruiseVelocity, 0);
+		rotateTalon.config_kP(0, 0.5, 0);
 		
 		wheelTalon.configSelectedFeedbackSensor(FeedbackDevice.CTRE_MagEncoder_Relative, 0, 0);
 		wheelTalon.setSelectedSensorPosition(0, 0, 0);
@@ -33,20 +34,20 @@ public class SwerveWheel {
 	public void turnWheelToDegree(int desdegree) {
 		int currentOri = rotateTalon.getSelectedSensorPosition(0);
 		
-		double curDeg = ((currentOri/FULL_ENCODER_ROTATION)*360)%360;
+		double curDeg = toDegrees(currentOri);
 		
 		double err = Math.abs(desdegree-curDeg);
 	
 		double ifRight = err;
-		double ifLeft = err + (360-curDeg); 
+		double ifLeft = desdegree + (360-curDeg); 
 		
 		double posUNeed = 0;
 		if(ifRight > ifLeft) {
 			//Going left
-			posUNeed = (err + (360-curDeg))*FULL_ENCODER_ROTATION;
+			posUNeed = toPositionUnits(desdegree + (360 - curDeg));
 		}else if(ifRight < ifLeft) {
 			//Going Right
-			posUNeed = (err/360)*FULL_ENCODER_ROTATION;
+			posUNeed = toPositionUnits(err);
 		}
 		
 		rotateTalon.set(ControlMode.MotionMagic, posUNeed);
@@ -59,6 +60,18 @@ public class SwerveWheel {
 	
 	public void resetEncoder() {
 		wheelTalon.setSelectedSensorPosition(0, 0, 0);
+	}
+	
+	public double getCurrentOrientation() {
+		return rotateTalon.getSelectedSensorPosition(0)/FULL_ENCODER_ROTATION*360;
+	}
+	
+	private double toPositionUnits(double degr) {
+		return (degr/360)*FULL_ENCODER_ROTATION;
+	}
+	
+	private double toDegrees(double pos) {
+		return ((pos/FULL_ENCODER_ROTATION)*360)%360;
 	}
 	
 }
