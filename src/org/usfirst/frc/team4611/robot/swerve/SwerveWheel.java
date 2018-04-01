@@ -63,7 +63,7 @@ public class SwerveWheel {
 	}
 	
 	public double getCurrentOrientation() {
-		return rotateTalon.getSelectedSensorPosition(0)/FULL_ENCODER_ROTATION*360;
+		return toDegrees(rotateTalon.getSelectedSensorPosition(0));
 	}
 	
 	private double toPositionUnits(double degr) {

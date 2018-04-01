@@ -1,5 +1,7 @@
 package org.usfirst.frc.team4611.robot.swerve;
 
+import com.ctre.phoenix.sensors.PigeonIMU;
+
 import edu.wpi.first.wpilibj.command.Subsystem;
 
 public class SwerveDrive extends Subsystem{
@@ -11,25 +13,28 @@ public class SwerveDrive extends Subsystem{
 	
 	private final double maxRPM = 780;
 	
-	public SwerveDrive(int rotFLTP, int wheelFLTP, int rotFRTP, int wheelFRTP, int rotBLTP, int wheelBLTP, int rotBRTP, int wheelBRTP) {
+	private final PigeonIMU pigeon;
+	
+	public SwerveDrive(PigeonIMU p, int rotFLTP, int wheelFLTP, int rotFRTP, int wheelFRTP, int rotBLTP, int wheelBLTP, int rotBRTP, int wheelBRTP) {
 		FLSwerveWheel = new SwerveWheel(rotFLTP, wheelFLTP);
 		FRSwerveWheel = new SwerveWheel(rotFRTP, wheelFRTP);
 		BLSwerveWheel = new SwerveWheel(rotBLTP, wheelBLTP);
 		BRSwerveWheel = new SwerveWheel(rotBRTP, wheelBRTP);
+		
+		pigeon = p;
 	}
+	
 	public void swerve(double xVal, double yVal, double zVal) {
-		double mag = Math.sqrt(Math.pow(xVal, 2) + Math.pow(yVal, 2));
+		
+		//Gets the current relative orientation of the pigeon, and adds an offset so that it's the same as a unit circle
+		double currentAngle = Math.toRadians(pigeon.getFusedHeading()%360) + Math.PI/2;
 		
 		double courseFL;
 		double courseFR;
 		double courseBL;
 		double courseBR;
-		
-		double velocityFL = maxRPM * Math.copySign(Math.min(Math.abs(mag), 1), mag);
-		double velocityFR = maxRPM * Math.copySign(Math.min(Math.abs(mag), 1), mag);
-		double velocityBL = maxRPM * Math.copySign(Math.min(Math.abs(mag), 1), mag);
-		double velocityBR = maxRPM * Math.copySign(Math.min(Math.abs(mag), 1), mag);
-		
+	
+		//Make sure that we won't divide by zero or handle if one of the values are zero
 		if(xVal == 0 && yVal != 0) {
 			if(yVal < 0) {
 				courseFL = 3*Math.PI/2;
@@ -55,21 +60,67 @@ public class SwerveDrive extends Subsystem{
 				courseBR = Math.PI;
 			}
 		}else if(yVal == 0 && xVal == 0) {
+			//The joystick is not being touched, so the wheels stay at the current orientation
 			courseFL = FLSwerveWheel.getCurrentOrientation();
 			courseFR = FRSwerveWheel.getCurrentOrientation();
 			courseBL = BLSwerveWheel.getCurrentOrientation();
 			courseBR = BRSwerveWheel.getCurrentOrientation();
-		}else {
-			courseFL = Math.atan(yVal/xVal);
-			courseFR = Math.atan(yVal/xVal);
-			courseBL = Math.atan(yVal/xVal);
-			courseBR = Math.atan(yVal/xVal);
-		}
+		}else{
+			//Gets the reference angle of the resulting vector
+			courseFL = Math.atan2(yVal, xVal);
+			courseFR = Math.atan2(yVal, xVal);
+			courseBL = Math.atan2(yVal, xVal);
+			courseBR = Math.atan2(yVal, xVal);
+		
+			//Which quadrant are we in?
+			if(xVal < 0 && yVal < 0) {
+				//3rd Quadrant (Math.atan2(-XVal, -YVal) will return negative))
+				courseFL -= 2*Math.PI;
+				courseFR -= 2*Math.PI;
+				courseBL -= 2*Math.PI;
+				courseBR -= 2*Math.PI;
+			}else if(xVal < 0 && yVal > 0) {
+				//2nd Quadrant (Math.atan2(-XVal, +YVal) will return positive)
+				courseFL -= Math.PI;
+				courseFR -= Math.PI;
+				courseBL -= Math.PI;
+				courseBR -= Math.PI;
+			}else if(xVal > 0 && yVal < 0) {
+				//Fourth Quadrant (Math.atan2(+Xval, -YVal) will return negative)
+				courseFL += 2*Math.PI;
+				courseFR += 2*Math.PI;
+				courseBL += 2*Math.PI;
+				courseBR += 2*Math.PI;
+			} 
 			
+		}
+		
+		double mag = Math.sqrt(Math.pow(xVal, 2) + Math.pow(yVal, 2));
+		
+		double thetha = Math.atan2(yVal, xVal) + currentAngle;
+		xVal = Math.cos(thetha) * mag;
+		yVal = Math.sin(thetha) * mag;
+		
+		//Calculates the velocity of each motor
+		double velocityFL = maxRPM * Math.copySign(Math.min(Math.abs(mag), 1), mag);
+		double velocityFR = maxRPM * Math.copySign(Math.min(Math.abs(mag), 1), mag);
+		double velocityBL = maxRPM * Math.copySign(Math.min(Math.abs(mag), 1), mag);
+		double velocityBR = maxRPM * Math.copySign(Math.min(Math.abs(mag), 1), mag);
+			
+		//Converts the courses into degrees
+		courseFL = Math.toDegrees(courseFL);
+		courseFR = Math.toDegrees(courseFR);
+		courseBL = Math.toDegrees(courseBL);
+		courseBR = Math.toDegrees(courseBR);
+		
+		//Turns the wheel to their new orientations
 		turnWheels(courseFL, courseFR, courseBL, courseBR);
+		
+		//Sets the velocity of each motor
 		setVelocity(velocityFL, velocityFR, velocityBL, velocityBR);
 		
 	}
+	
 	public void turnWheels(double courseFL, double courseFR, double courseBL, double courseBR) {
 		FLSwerveWheel.turnWheelToDegree((int)courseFL);
 		FRSwerveWheel.turnWheelToDegree((int)courseFR);
