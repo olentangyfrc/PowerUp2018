@@ -75,27 +75,23 @@ public class SwerveDrive extends Subsystem{
 			//Which quadrant are we in?
 			if(xVal < 0 && yVal < 0) {
 				//3rd Quadrant (Math.atan2(-XVal, -YVal) will return negative))
-				courseFL -= 2*Math.PI;
-				courseFR -= 2*Math.PI;
-				courseBL -= 2*Math.PI;
-				courseBR -= 2*Math.PI;
-			}else if(xVal < 0 && yVal > 0) {
-				//2nd Quadrant (Math.atan2(-XVal, +YVal) will return positive)
-				courseFL -= Math.PI;
-				courseFR -= Math.PI;
-				courseBL -= Math.PI;
-				courseBR -= Math.PI;
+				courseFL += 2*Math.PI;
+				courseFR += 2*Math.PI;
+				courseBL += 2*Math.PI;
+				courseBR += 2*Math.PI;
 			}else if(xVal > 0 && yVal < 0) {
-				//Fourth Quadrant (Math.atan2(+Xval, -YVal) will return negative)
+				//Fourth Quadrant (Math.atan2(+XVal, -YVal) will return negative)
 				courseFL += 2*Math.PI;
 				courseFR += 2*Math.PI;
 				courseBL += 2*Math.PI;
 				courseBR += 2*Math.PI;
 			} 
-			
+			//First and Second Quadrant will already have the correct values
 		}
 		
+		//The resultant of the XVal and YVal
 		double mag = Math.sqrt(Math.pow(xVal, 2) + Math.pow(yVal, 2));
+		
 		
 		double thetha = Math.atan2(yVal, xVal) + currentAngle;
 		xVal = Math.cos(thetha) * mag;
@@ -108,10 +104,10 @@ public class SwerveDrive extends Subsystem{
 		double velocityBR = maxRPM * Math.copySign(Math.min(Math.abs(mag), 1), mag);
 			
 		//Converts the courses into degrees
-		courseFL = Math.toDegrees(courseFL);
-		courseFR = Math.toDegrees(courseFR);
-		courseBL = Math.toDegrees(courseBL);
-		courseBR = Math.toDegrees(courseBR);
+		courseFL = Math.toDegrees(courseFL - currentAngle);
+		courseFR = Math.toDegrees(courseFR - currentAngle);
+		courseBL = Math.toDegrees(courseBL - currentAngle);
+		courseBR = Math.toDegrees(courseBR - currentAngle);
 		
 		//Turns the wheel to their new orientations
 		turnWheels(courseFL, courseFR, courseBL, courseBR);
