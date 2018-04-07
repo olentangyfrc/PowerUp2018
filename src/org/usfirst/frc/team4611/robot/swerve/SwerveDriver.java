@@ -1,8 +1,5 @@
 package org.usfirst.frc.team4611.robot.swerve;
 
-import org.usfirst.frc.team4611.robot.OI;
-import org.usfirst.frc.team4611.robot.Robot;
-
 import edu.wpi.first.wpilibj.command.Command;
 
 public class SwerveDriver extends Command {
@@ -15,9 +12,9 @@ public class SwerveDriver extends Command {
 	}
 	
 	protected void execute() {
-		double XVal = Robot.oi.filter(OI.leftJoy.getX());
-		double YVal = Robot.oi.strafeFilter(OI.leftJoy.getY());
-		double ZVal = Robot.oi.rotateFilter(OI.rightJoy.getX());
+		double XVal = swDrive.getFilteredLeftJoystickX();
+		double YVal = swDrive.getFilteredLeftJoystickY();
+		double ZVal = swDrive.getFilteredRightJoystickX();
 		
 		swDrive.swerve(XVal, YVal, ZVal);
 	}

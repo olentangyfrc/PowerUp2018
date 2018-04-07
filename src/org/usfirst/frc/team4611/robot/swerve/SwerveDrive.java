@@ -1,11 +1,22 @@
 package org.usfirst.frc.team4611.robot.swerve;
 
-import com.ctre.phoenix.sensors.PigeonIMU;
+import org.usfirst.frc.team4611.robot.defaults.OIHashMap;
+import org.usfirst.frc.team4611.robot.defaults.OzoneHashMap;
+import org.usfirst.frc.team4611.robot.enums.JoystickName;
+import org.usfirst.frc.team4611.robot.interfaces.IDriveTrain;
+import org.usfirst.frc.team4611.robot.subsystems.Pigeon;
 
+import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.command.Subsystem;
 
-public class SwerveDrive extends Subsystem{
+public class SwerveDrive extends Subsystem implements IDriveTrain{
 
+	private String swerveSubtable = "Swerve";
+	private String swerveXFilterID = "X DeadZone";
+	private String swerveYFilterID = "Y DeadZone";
+	private String swerveZFilterID = "Turn DeadZone";
+	private String swerveMotorPowerID = "Motor Power";
+	
 	private SwerveWheel FLSwerveWheel;
 	private SwerveWheel FRSwerveWheel;
 	private SwerveWheel BLSwerveWheel;
@@ -13,23 +24,26 @@ public class SwerveDrive extends Subsystem{
 	
 	private final double maxRPM = 780;
 	
-	private final PigeonIMU pigeon;
+	private final Pigeon pigeon;
 	
-	public SwerveDrive(PigeonIMU p, int rotFLTP, int wheelFLTP, int rotFRTP, int wheelFRTP, int rotBLTP, int wheelBLTP, int rotBRTP, int wheelBRTP) {
+	OzoneHashMap values;
+	OIHashMap oi;
+	
+	public SwerveDrive(OzoneHashMap val, OIHashMap joy, Pigeon p, int rotFLTP, int wheelFLTP, int rotFRTP, int wheelFRTP, int rotBLTP, int wheelBLTP, int rotBRTP, int wheelBRTP) {
 		FLSwerveWheel = new SwerveWheel(rotFLTP, wheelFLTP);
 		FRSwerveWheel = new SwerveWheel(rotFRTP, wheelFRTP);
 		BLSwerveWheel = new SwerveWheel(rotBLTP, wheelBLTP);
 		BRSwerveWheel = new SwerveWheel(rotBRTP, wheelBRTP);
 		
 		pigeon = p;
+		values = val;
+		oi = joy;
+		setupJoysticks();
 	}
 	
-	public void swerve(double xVal, double yVal, double zVal) {
-		double pigeonAngle = pigeon.getFusedHeading();
-		
-		//Gets the current relative orientation of the pigeon, and adds an offset so that it's the same as a unit circle
-		double currentAngle = Math.toRadians(Math.abs(pigeonAngle)%360) - Math.PI/2;
-		currentAngle += pigeonAngle < 0 ? Math.PI: 0;
+	public void swerve(double xVal, double yVal, double zVal) {		
+		//Gets the current relative orientation of the pigeon
+		double currentAngle = Math.toRadians(pigeon.getCurrentWrappedAngle());
 		
 		double courseFL;
 		double courseFR;
@@ -136,6 +150,94 @@ public class SwerveDrive extends Subsystem{
 	protected void initDefaultCommand() {
 		this.setDefaultCommand(new SwerveDriver(this));
 	}
+
+	@Override
+	public double filter(double raw) {
+		if (Math.abs(raw) < values.getDouble(swerveSubtable, swerveXFilterID, 0.15)) {
+            return 0; //If the value passed is less than 15% ignore it. This is reffered to as a deadzone
+        } else {
+            return  raw * values.getDouble(swerveSubtable, swerveMotorPowerID, 0.5); //Set the output to a ceratin percent of of the input
+        }
+	}
+
+	@Override
+	public double strafeFilter(double raw) {
+		if (Math.abs(raw) < values.getDouble(swerveSubtable, swerveYFilterID, 0.15)) {
+            return 0; //If the value passed is less than 15% ignore it. This is reffered to as a deadzone
+        } else {
+            return  raw * Math.min(values.getDouble(swerveSubtable, swerveMotorPowerID, 0.5) * 2, 1); //Set the output to a ceratin percent of of the input
+        }
+	}
+
+	@Override
+	public double turnFilter(double raw) {
+		if (Math.abs(raw) < values.getDouble(swerveSubtable, swerveZFilterID, 0.15)) {
+            return 0; //If the value passed is less than 15% ignore it. This is reffered to as a deadzone
+        } else {
+            return  raw * Math.min(values.getDouble(swerveSubtable, swerveMotorPowerID, 0.5) * 2, 1); //Set the output to a ceratin percent of of the input
+        }
+	}
+
+	@Override
+	public void setupJoysticks() {
+		
+	}
+
+	@Override
+	public Joystick getLeftJoystick() {
+		return (Joystick)oi.get(JoystickName.LEFT.toString());
+	}
+
+	@Override
+	public Joystick getRightJoystick() {
+		return (Joystick)oi.get(JoystickName.RIGHT.toString());
+	}
 	
+	@Override
+	public Joystick getAuxJoystick() {
+		return (Joystick)oi.get(JoystickName.AUX.toString());
+	}
+
+	@Override
+	public double getFilteredLeftJoystickX() {
+		return this.strafeFilter(this.getLeftJoystick().getX());
+	}
+
+	@Override
+	public double getFilteredLeftJoystickY() {
+		// TODO Auto-generated method stub
+		return this.filter(this.getLeftJoystick().getY());
+	}
+
+	@Override
+	public double getFilteredLeftJoystickZ() {
+		return this.filter(this.getLeftJoystick().getZ());
+	}
+
+	@Override
+	public double getFilteredRightJoystickX() {
+		return this.turnFilter(this.getRightJoystick().getX());
+	}
+
+	@Override
+	public double getFilteredRightJoystickY() {
+		return this.filter(this.getRightJoystick().getY());
+	}
+
+	@Override
+	public double getFilteredRightJoystickZ() {
+		return this.filter(this.getRightJoystick().getZ());
+	}
+	
+	public double getFilteredAuxJoystickX() {
+		return this.filter(this.getAuxJoystick().getX());
+	}
+	
+	public double getFilteredAuxJoystickY() {
+		return this.filter(this.getAuxJoystick().getY());
+	}
+	public double getFilteredAuxJoystickZ() {
+		return this.filter(this.getAuxJoystick().getZ());
+	}
 
 }

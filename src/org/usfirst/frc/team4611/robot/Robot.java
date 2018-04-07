@@ -1,39 +1,13 @@
 package org.usfirst.frc.team4611.robot;
 
-import java.util.HashMap;
-
-import org.usfirst.frc.team4611.robot.commands.auton.AutonCommandGroup;
-import org.usfirst.frc.team4611.robot.commands.auton.dualTargets.CenterLeftReset;
-import org.usfirst.frc.team4611.robot.commands.auton.dualTargets.CenterRightReset;
-import org.usfirst.frc.team4611.robot.commands.auton.dualTargets.StartLeftLeftSwitchLeftScale;
-import org.usfirst.frc.team4611.robot.commands.auton.dualTargets.StartLeftLeftSwitchRightScale;
-import org.usfirst.frc.team4611.robot.commands.auton.dualTargets.StartLeftRightSwitchRightScale;
-import org.usfirst.frc.team4611.robot.commands.auton.dualTargets.StartLeftScaleLeftScaleLeft;
-import org.usfirst.frc.team4611.robot.commands.auton.dualTargets.StartLeftScaleRightScaleRight;
-import org.usfirst.frc.team4611.robot.commands.auton.dualTargets.StartRightLeftSwitchLeftScale;
-import org.usfirst.frc.team4611.robot.commands.auton.dualTargets.StartRightRightSwitchLeftScale;
-import org.usfirst.frc.team4611.robot.commands.auton.dualTargets.StartRightRightSwitchRightScale;
-import org.usfirst.frc.team4611.robot.commands.auton.dualTargets.StartRightScaleLeftScaleLeft;
-import org.usfirst.frc.team4611.robot.commands.auton.dualTargets.StartRightScaleRightScaleRight;
+import org.usfirst.frc.team4611.robot.defaults.OIHashMap;
+import org.usfirst.frc.team4611.robot.defaults.OzoneHashMap;
 import org.usfirst.frc.team4611.robot.logging.Logger;
-import org.usfirst.frc.team4611.robot.subsystems.Arm;
-import org.usfirst.frc.team4611.robot.subsystems.BoxPusher;
-import org.usfirst.frc.team4611.robot.subsystems.Climber;
-import org.usfirst.frc.team4611.robot.subsystems.DriveTrain;
-import org.usfirst.frc.team4611.robot.subsystems.Elevator;
-import org.usfirst.frc.team4611.robot.subsystems.FancyLights;
-import org.usfirst.frc.team4611.robot.subsystems.Optical;
-import org.usfirst.frc.team4611.robot.subsystems.Solenoid;
-import org.usfirst.frc.team4611.robot.subsystems.UltrasonicSensor;
+import org.usfirst.frc.team4611.robot.networking.NetworkTableManager;
+import org.usfirst.frc.team4611.robot.subsystems.Pigeon;
+import org.usfirst.frc.team4611.robot.swerve.SwerveDrive;
 
-import edu.wpi.cscore.UsbCamera;
-import edu.wpi.first.networktables.NetworkTable;
-import edu.wpi.first.networktables.NetworkTableInstance;
-import edu.wpi.first.wpilibj.CameraServer;
-import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj.I2C.Port;
 import edu.wpi.first.wpilibj.IterativeRobot;
-import edu.wpi.first.wpilibj.Spark;
 import edu.wpi.first.wpilibj.command.Command;
 import edu.wpi.first.wpilibj.command.Scheduler;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
@@ -46,31 +20,15 @@ import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
  * directory.
  */
 public class Robot extends IterativeRobot {
-
-	public static DriveTrain mecanum;
-	public static Elevator elevator;
-	public static Arm arm;
-	public static UltrasonicSensor ultrasonic;
-	public static Spark lightController;
-	public static FancyLights fancyLight;
-	public static Solenoid sol;
-	public static NetworkTableInstance tableInstance;
-	public static NetworkTable table;
-	public static Optical opt;
-	public static UsbCamera camera;
-	public static BoxPusher boxPusher;
-	public static DriverStation driver;
-	public static Climber climber;
-	public static OI oi;
-	public boolean hasInitialized = false;
-	public String autonFinalDecision;
-	public HashMap<String, Command> autonCommandGroup;
-	//public SendableChooser chooser;
-
-	Command autonomousCommand;
-	public static Command lightsCommand;
-	SendableChooser<Command> chooser = new SendableChooser<>();
+	private Pigeon pigeon;
+	private SwerveDrive swerve;
+	private Logger logger = Logger.getLogger(Robot.class);
 	
+	private OzoneHashMap masterValues;
+	private OIHashMap masterOI;
+	
+	Command autonomousCommand;
+	SendableChooser<Command> chooser = new SendableChooser<>();
 	
 	/**
 	 * This function is run when the robot is first started up and should be
@@ -78,32 +36,13 @@ public class Robot extends IterativeRobot {
 	 */
 	@Override
 	public void robotInit() {
-		RobotMap.init(); //Run the method "init" in RobotMap
-		//Initialize utilities
-		mecanum = new DriveTrain();
-		elevator = new Elevator();
-		arm = new Arm();
-		sol = new Solenoid();
-		boxPusher = new BoxPusher();
-		ultrasonic = new UltrasonicSensor();
-		opt = new Optical(Port.kMXP);
-		lightController = new Spark(9);
-		fancyLight = new FancyLights();
-		climber = new Climber();
-		driver = DriverStation.getInstance();
-		autonCommandGroup = new AutonCommandGroup<String, Command>();
-			
-		oi = new OI();
+		NetworkTableManager.startServer();
+		masterValues = new OzoneHashMap();
+		masterOI = new OIHashMap();
+		OI.initJoysticks(masterOI);
 		
-		camera = CameraServer.getInstance().startAutomaticCapture();	
-		camera.setResolution(320, 240);
-		camera.setFPS(20);
-		camera.setExposureManual(35);
-		
-		// Set up default values for auton
-		RobotMap.updateValue(RobotMap.autonSubTable, RobotMap.strategy, "");
-		RobotMap.updateValue(RobotMap.autonSubTable, RobotMap.velocityRecordingTag, "");
-		
+		pigeon = new Pigeon(21);
+		swerve = new SwerveDrive(masterValues, masterOI, pigeon, 0, 1, 2, 3, 4, 5, 6, 7);
 	}
 
 	/**
@@ -113,10 +52,9 @@ public class Robot extends IterativeRobot {
 	 */
 	@Override
 	public void disabledInit() {
-		RobotMap.defaults.saveProperties();
-		Logger.log("ROBOT DISABLED", "Robot");
-		
-		Logger.commit();
+		masterValues.save();
+		masterOI.save();
+		logger.info("ROBOT DISABLED");
 	}
 
 	@Override
@@ -126,18 +64,6 @@ public class Robot extends IterativeRobot {
 
 	@Override
 	public void autonomousInit() {
-		String path = getPath();
-		
-		Logger.log("Auton Final Decision [ "+path + "]", this.getClass().getName());
-		autonomousCommand = autonCommandGroup.get(path);
-		
-		if (autonomousCommand == null) {
-			autonomousCommand = this.autonCommandGroup.get("DRIVEFORWARD");
-		}
-
-		if (autonomousCommand != null) {
-			autonomousCommand.start();
-		}
 		
 	}
 
@@ -155,7 +81,6 @@ public class Robot extends IterativeRobot {
 		// teleop starts running. If you want the autonomous to
 		// continue until interrupted by another command, remove
 		// this line or comment it out.
-		Robot.mecanum.setRampRate(0);
 		if (autonomousCommand != null) 
 			autonomousCommand.cancel();
 	}
@@ -172,7 +97,7 @@ public class Robot extends IterativeRobot {
 	public void testPeriodic() {
 	}
 	
-	public String getPath() {
+	/**public String getPath() {
 		String fms = driver.getGameSpecificMessage().trim();
 		String sw = fms.substring(0, 1);
 		String sc = fms.substring(1, 2);
@@ -242,5 +167,5 @@ public class Robot extends IterativeRobot {
 		}
 		
 		return null;
-	}
+	}*/
 }

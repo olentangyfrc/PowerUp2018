@@ -1,7 +1,5 @@
 package org.usfirst.frc.team4611.robot.networking;
 
-import org.usfirst.frc.team4611.robot.RobotMap;
-
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
 
@@ -9,16 +7,17 @@ public class NetworkTableManager {
 
 	private static NetworkTableInstance instance;
 	private static NetworkTable table;
-	private static NetworkTable visionTable;
-
-	public NetworkTableManager() {
+	private static final int teamID = 4611;
+	private static final String networkTableServerAddress = "10.46.11.2";
+	private static final String networkTableID = "Custom Values";
+	
+	public static void startServer() {
 		instance = NetworkTableInstance.getDefault();
 		
-		instance.setServer(RobotMap.networkTableServerAddress, RobotMap.teamID);	
+		instance.setServer(networkTableServerAddress, teamID);	
 		instance.startServer();
 
-		table = instance.getTable(RobotMap.networkTableID);
-		visionTable = instance.getTable(RobotMap.visionTableID);
+		table = instance.getTable(networkTableID);
 	}
 	
 	/**
@@ -29,15 +28,10 @@ public class NetworkTableManager {
 	 * @param value The value to be saved/binded with the key
 	 * @return If it was successful in updating/creating the value
 	 */
-	public boolean updateValue(String subTable, String key, Object value) {		
+	public static boolean updateValue(String subTable, String key, Object value) {		
 		//Updates the value and returns a boolean that tells if it was successful
 		return table.getSubTable(subTable).getEntry(key).setValue(value);
 	}
-
-	public boolean updateVisionValue(String key, Object value) {		
-		//Updates the value and returns a boolean that tells if it was successful
-		return visionTable.getEntry(key).setValue(value);
-	}	
 	
 	/**
 	 * Gets a value that is linked with the given key
@@ -45,12 +39,12 @@ public class NetworkTableManager {
 	 * @param key The identifier that is linked with the desired value
 	 * @return The object that is linked with the given key
 	 */
-	public Object getValue(String subTable, String key) {
+	public static Object getValue(String subTable, String key, Object defaultVal) {
+		if(table.getSubTable(subTable).getEntry(key).getValue().getValue() == null) {
+			updateValue(subTable, key, defaultVal);
+			return defaultVal;
+		}
 		return table.getSubTable(subTable).getEntry(key).getValue().getValue();
-	}
-	
-	public Object getVisionValue(String key) {
-		return visionTable.getEntry(key).getValue().getValue();
 	}
 	
 	/**
@@ -59,7 +53,7 @@ public class NetworkTableManager {
 	 * @param key the key to be checked
 	 * @return if the key in the given subtable already exists
 	 */
-	public boolean alreadyHasKey(String subTable, String key) {
+	public static boolean alreadyHasKey(String subTable, String key) {
 		return table.getSubTable(subTable).containsKey(key);
 	}
 	
