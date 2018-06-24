@@ -20,8 +20,8 @@ public class SwerveWheel {
 		
 		rotateTalon.configSelectedFeedbackSensor(FeedbackDevice.CTRE_MagEncoder_Absolute, 0, 0);
 		rotateTalon.setSelectedSensorPosition(0, 0, 0);
-		wheelTalon.configMotionAcceleration(magicValuesAccel, 0);
-		wheelTalon.configMotionCruiseVelocity(motionmagicCruiseVelocity, 0);
+		rotateTalon.configMotionAcceleration(magicValuesAccel, 0);
+		rotateTalon.configMotionCruiseVelocity(motionmagicCruiseVelocity, 0);
 		rotateTalon.config_kP(0, 0.5, 0);
 		
 		wheelTalon.configSelectedFeedbackSensor(FeedbackDevice.CTRE_MagEncoder_Relative, 0, 0);
@@ -41,14 +41,7 @@ public class SwerveWheel {
 		double ifRight = err;
 		double ifLeft = desdegree + (360-curDeg); 
 		
-		double posUNeed = 0;
-		if(ifRight > ifLeft) {
-			//Going left
-			posUNeed = toPositionUnits(desdegree + (360 - curDeg));
-		}else if(ifRight < ifLeft) {
-			//Going Right
-			posUNeed = toPositionUnits(err);
-		}
+		double posUNeed = toPositionUnits(Math.min(ifRight, ifLeft));
 		
 		rotateTalon.set(ControlMode.MotionMagic, posUNeed);
 		

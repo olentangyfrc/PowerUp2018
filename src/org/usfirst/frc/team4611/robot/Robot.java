@@ -39,7 +39,6 @@ public class Robot extends IterativeRobot {
 		NetworkTableManager.startServer();
 		masterValues = new OzoneHashMap();
 		masterOI = new OIHashMap();
-		OI.initJoysticks(masterOI);
 		
 		pigeon = new Pigeon(21);
 		swerve = new SwerveDrive(masterValues, masterOI, pigeon, 0, 1, 2, 3, 4, 5, 6, 7);

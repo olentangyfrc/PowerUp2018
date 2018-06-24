@@ -17,6 +17,9 @@ public class SwerveDrive extends Subsystem implements IDriveTrain{
 	private String swerveZFilterID = "Turn DeadZone";
 	private String swerveMotorPowerID = "Motor Power";
 	
+	public static String driveTrainID = "driveTrain";
+	public static String driveTypeID = "driveType";
+	
 	private SwerveWheel FLSwerveWheel;
 	private SwerveWheel FRSwerveWheel;
 	private SwerveWheel BLSwerveWheel;
@@ -185,17 +188,17 @@ public class SwerveDrive extends Subsystem implements IDriveTrain{
 
 	@Override
 	public Joystick getLeftJoystick() {
-		return (Joystick)oi.get(JoystickName.LEFT.toString());
+		return oi.getJoystick(JoystickName.LEFT);
 	}
 
 	@Override
 	public Joystick getRightJoystick() {
-		return (Joystick)oi.get(JoystickName.RIGHT.toString());
+		return oi.getJoystick(JoystickName.RIGHT);
 	}
 	
 	@Override
 	public Joystick getAuxJoystick() {
-		return (Joystick)oi.get(JoystickName.AUX.toString());
+		return oi.getJoystick(JoystickName.AUX);
 	}
 
 	@Override
