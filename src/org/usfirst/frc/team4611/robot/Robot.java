@@ -125,6 +125,7 @@ public class Robot extends IterativeRobot {
 		
 		//autonomousCommand = new TestBlock();
 		
+		
 		if (autonomousCommand == null) {
 			autonomousCommand = this.autonCommandGroup.get("DRIVEFORWARD");
 		}
